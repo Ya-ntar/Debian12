@@ -1,21 +1,35 @@
 #!/bin/bash
-FILE="testfile.img"
-BLOCK_SIZE="1M"   # quote to prevent bash misinterpretation
-FILE_SIZE=1024     # number of blocks
 
-if [ ! -f "$FILE" ]; then
-    echo "Creating $FILE (~1GB)..."
-    dd if=/dev/zero of="$FILE" bs="$BLOCK_SIZE" count=$FILE_SIZE status=none
+# Путь к рабочему файлу
+FILE_DIR="/var/tmp"
+FILE_NAME="image_file.img"
+FILE_PATH="$FILE_DIR/$FILE_NAME"
+
+# Размер файла 1 ГБ
+FILE_SIZE="1G"
+
+# Создаём директорию если не существует
+mkdir -p "$FILE_DIR"
+
+# Инициализация исходного файла
+if [ ! -f "$FILE_PATH" ]; then
+    echo "Создаём исходный файл $FILE_PATH размером $FILE_SIZE"
+    fallocate -l "$FILE_SIZE" "$FILE_PATH"
 fi
 
-echo "Starting I/O stress loop..."
 while true; do
-    # read file to /dev/null
-    cat "$FILE" > /dev/null
-    # copy file
-    dd if="$FILE" of="copy.img" bs="$BLOCK_SIZE" count=$FILE_SIZE status=none
-    # overwrite original
-    mv copy.img "$FILE"
-    echo "Cycle completed"
-    sleep 0.5
+    # Буфер временного файла
+    COPY_PATH="$FILE_PATH.copy"
+
+    # Чтение исходного файла и запись в копию
+    cat "$FILE_PATH" > "$COPY_PATH"
+
+    # Удаление исходного файла
+    rm -f "$FILE_PATH"
+
+    # Переименование копии в исходное имя
+    mv "$COPY_PATH" "$FILE_PATH"
+
+    # Маленькая пауза (чтобы снизить нагрузку)
+    sleep 0.1
 done
